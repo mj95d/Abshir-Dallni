@@ -1,0 +1,58 @@
+Build a complete mobile and web application called “Dalleni”.
+The concept: an AI-powered personal assistant that helps users perform official inquiries, renew services, check leaked personal data, and get guided steps for any government or daily service.
+
+Core Features
+
+AI Inquiry Assistant
+• User asks any question (renew iqama, renew driving license, car ownership transfer, violations inquiry).
+• The AI gives step-by-step instructions.
+• Provide official links (Absher, ministries, banks, telecom companies).
+• Auto-generate forms and checklists.
+
+Dark Web Monitoring (HIBP Integration)
+• User enters email or phone number.
+• System checks if data is leaked (using HIBP API).
+• If leaked → show risk level + recommended actions + guidance.
+
+Smart Renewal System
+• Track expiry dates (ID, residency, license, car insurance).
+• Send reminders with countdown.
+• Show cost, payment steps, required documents.
+
+Government Services Hub
+• Organized categories:
+– Absher Services
+– Passports
+– Traffic
+– Health
+– Education
+– Banks
+– SIM Cards & Telecom
+• Each service contains: what it is, requirements, processing time, fees, and AI step-by-step.
+
+AI Chat Interface (Main Screen)
+• Ask: “How do I renew my Iqama?”
+• Ask: “How do I check traffic violations?”
+• Ask: “What to do if my data is leaked?”
+• AI replies with guided workflow.
+
+User Dashboard
+• Saved inquiries
+• Upcoming renewals
+• Document storage
+• Alerts center
+
+Modern UI/UX
+• Saudi vibes (green/white)
+• Minimal icons
+• Easy navigation
+• Fully bilingual (Arabic + English)
+
+✨ Full Prompt to Generate the App
+
+Here is the final ready-to-paste prompt:
+
+“Create a modern, clean, bilingual mobile and web application named Dalleni.
+The app acts as an AI-powered assistant for all official inquiries and daily tasks in Saudi Arabia.
+Include an AI chat interface that gives step-by-step instructions for government services, renewals, and inquiries. Add a Dark Web Monitoring feature connected to the HIBP API to check if the user’s email/phone is leaked. Add dashboards for reminders, expiring services, car information, and personal documents.
+Design professional UI screens (onboarding, AI chat, services categories, inquiry results, alerts, and user profile) with a minimalist Saudi theme (green/white). Provide all screens compatible with Lovable.dev.”

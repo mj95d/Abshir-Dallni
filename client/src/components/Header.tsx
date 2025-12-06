@@ -1,7 +1,7 @@
 import { useLanguage } from "@/lib/LanguageContext";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
-import { Shield } from "lucide-react";
+import logoImage from "@assets/ebb1130c-e595-4902-8c67-f972261613a0_transparent_1765030513603.png";
 
 interface HeaderProps {
   currentPage: string;
@@ -27,9 +27,11 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
             className="flex items-center gap-2"
             data-testid="link-logo"
           >
-            <div className="w-10 h-10 rounded-md bg-primary flex items-center justify-center">
-              <Shield className="h-6 w-6 text-primary-foreground" />
-            </div>
+            <img 
+              src={logoImage} 
+              alt="Dalleni Logo" 
+              className="h-10 w-auto"
+            />
             <div className={`flex flex-col ${language === "ar" ? "font-arabic" : ""}`}>
               <span className="font-bold text-lg leading-tight">{t("appName")}</span>
               <span className="text-xs text-muted-foreground hidden sm:block">{t("tagline")}</span>

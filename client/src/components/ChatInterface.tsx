@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Send, Bot, User, Loader2 } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Message {
   id: string;
@@ -24,6 +25,7 @@ export function ChatInterface() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
 
   const suggestedQuestions = language === "en" 
     ? [
@@ -56,18 +58,39 @@ export function ChatInterface() {
     setInput("");
     setIsLoading(true);
 
-    // todo: remove mock functionality - replace with actual AI response
-    setTimeout(() => {
-      const mockResponse: Message = {
+    try {
+      const conversationHistory = messages
+        .filter((m) => m.id !== "welcome")
+        .map((m) => ({ role: m.role, content: m.content }));
+
+      const response = await apiRequest("POST", "/api/chat", {
+        message: userMessage.content,
+        language,
+        sessionId,
+        conversationHistory,
+      });
+
+      const data = await response.json();
+
+      const assistantMessage: Message = {
+        id: (Date.now() + 1).toString(),
+        role: "assistant",
+        content: data.response,
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Chat error:", error);
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
         content: language === "en" 
-          ? `I understand you're asking about "${userMessage.content}". Here are the steps:\n\n1. Log in to Absher portal (absher.sa)\n2. Navigate to the relevant service section\n3. Follow the on-screen instructions\n4. Pay the required fees\n5. Wait for confirmation\n\nWould you like more details about any specific step?`
-          : `أفهم أنك تسأل عن "${userMessage.content}". إليك الخطوات:\n\n1. سجل الدخول إلى بوابة أبشر (absher.sa)\n2. انتقل إلى قسم الخدمة المطلوبة\n3. اتبع التعليمات على الشاشة\n4. ادفع الرسوم المطلوبة\n5. انتظر التأكيد\n\nهل تريد مزيداً من التفاصيل عن أي خطوة؟`,
+          ? "I'm sorry, I encountered an error. Please try again later."
+          : "عذراً، حدث خطأ. يرجى المحاولة مرة أخرى لاحقاً.",
       };
-      setMessages((prev) => [...prev, mockResponse]);
+      setMessages((prev) => [...prev, errorMessage]);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {

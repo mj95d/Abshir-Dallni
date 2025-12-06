@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Shield, ShieldAlert, ShieldCheck, Loader2, AlertTriangle, CheckCircle, Key, Smartphone, Mail } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 interface BreachResult {
   found: boolean;
@@ -21,40 +22,27 @@ export function BreachChecker() {
   const [email, setEmail] = useState("");
   const [isChecking, setIsChecking] = useState(false);
   const [result, setResult] = useState<BreachResult | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleCheck = async () => {
     if (!email.trim()) return;
     
     setIsChecking(true);
     setResult(null);
+    setError(null);
 
-    // todo: remove mock functionality - replace with actual HIBP API call
-    setTimeout(() => {
-      const mockHasBreaches = email.includes("test") || email.includes("example");
-      
-      if (mockHasBreaches) {
-        setResult({
-          found: true,
-          breaches: [
-            {
-              name: "Dropbox 2024",
-              date: "2024-03-15",
-              dataTypes: ["email", "password", "phone"],
-              severity: "high",
-            },
-            {
-              name: "LinkedIn 2023",
-              date: "2023-08-20",
-              dataTypes: ["email", "name"],
-              severity: "medium",
-            },
-          ],
-        });
-      } else {
-        setResult({ found: false });
-      }
+    try {
+      const response = await apiRequest("POST", "/api/breach-check", { email });
+      const data: BreachResult = await response.json();
+      setResult(data);
+    } catch (err) {
+      console.error("Breach check error:", err);
+      setError(language === "en" 
+        ? "Failed to check for breaches. Please try again later."
+        : "فشل في التحقق من التسريبات. يرجى المحاولة مرة أخرى لاحقاً.");
+    } finally {
       setIsChecking(false);
-    }, 2000);
+    }
   };
 
   const getSeverityColor = (severity: string) => {
@@ -71,16 +59,15 @@ export function BreachChecker() {
   };
 
   const getDataTypeIcon = (type: string) => {
-    switch (type) {
-      case "email":
-        return Mail;
-      case "password":
-        return Key;
-      case "phone":
-        return Smartphone;
-      default:
-        return Shield;
-    }
+    const lowerType = type.toLowerCase();
+    if (lowerType.includes("email")) return Mail;
+    if (lowerType.includes("password")) return Key;
+    if (lowerType.includes("phone")) return Smartphone;
+    return Shield;
+  };
+
+  const formatDataType = (type: string) => {
+    return type.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
   };
 
   return (
@@ -119,6 +106,13 @@ export function BreachChecker() {
           </Button>
         </div>
 
+        {error && (
+          <div className="flex items-center gap-3 p-4 rounded-md bg-destructive/10 border border-destructive/20 mb-4">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <p className="text-sm text-destructive">{error}</p>
+          </div>
+        )}
+
         {result && (
           <div className="space-y-4">
             {result.found ? (
@@ -155,7 +149,7 @@ export function BreachChecker() {
                         return (
                           <Badge key={type} variant="outline" className="gap-1">
                             <Icon className="h-3 w-3" />
-                            {type}
+                            {formatDataType(type)}
                           </Badge>
                         );
                       })}

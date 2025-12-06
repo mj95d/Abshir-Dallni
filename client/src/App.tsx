@@ -1,18 +1,61 @@
-import { Switch, Route } from "wouter";
+import { useState } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/not-found";
+import { LanguageProvider } from "@/lib/LanguageContext";
+import { Header } from "@/components/Header";
+import { MobileNav } from "@/components/MobileNav";
+import { HomePage } from "@/components/HomePage";
+import { ServiceCategoryGrid } from "@/components/ServiceCategoryGrid";
+import { ChatInterface } from "@/components/ChatInterface";
+import { BreachChecker } from "@/components/BreachChecker";
+import { Dashboard } from "@/components/Dashboard";
 
-function Router() {
+function AppContent() {
+  const [currentPage, setCurrentPage] = useState("home");
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case "home":
+        return <HomePage onNavigate={setCurrentPage} />;
+      case "services":
+        return (
+          <div className="p-4 max-w-7xl mx-auto">
+            <ServiceCategoryGrid />
+          </div>
+        );
+      case "chat":
+        return (
+          <div className="h-[calc(100vh-60px)] md:h-[calc(100vh-73px)]">
+            <ChatInterface />
+          </div>
+        );
+      case "security":
+        return (
+          <div className="p-4 py-8">
+            <BreachChecker />
+          </div>
+        );
+      case "dashboard":
+        return (
+          <div className="p-4 py-8">
+            <Dashboard />
+          </div>
+        );
+      default:
+        return <HomePage onNavigate={setCurrentPage} />;
+    }
+  };
+
   return (
-    <Switch>
-      {/* Add pages below */}
-      {/* <Route path="/" component={Home}/> */}
-      {/* Fallback to 404 */}
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen bg-background">
+      <Header currentPage={currentPage} onNavigate={setCurrentPage} />
+      <main className="pb-20 md:pb-0">
+        {renderPage()}
+      </main>
+      <MobileNav currentPage={currentPage} onNavigate={setCurrentPage} />
+    </div>
   );
 }
 
@@ -20,8 +63,10 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Router />
+        <LanguageProvider>
+          <AppContent />
+          <Toaster />
+        </LanguageProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

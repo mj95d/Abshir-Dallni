@@ -43,7 +43,8 @@
   --chart-3: 280 65% 35%;
   --chart-4: 30 80% 35%;
   --chart-5: 340 75% 35%;
-  --font-sans: Open Sans, sans-serif;
+  --font-sans: Inter, sans-serif;
+  --font-arabic: 'IBM Plex Sans Arabic', sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
   --radius: .5rem;

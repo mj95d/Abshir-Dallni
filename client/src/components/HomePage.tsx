@@ -6,7 +6,6 @@ import {
   MessageSquare, 
   Shield, 
   Clock, 
-  Sparkles,
   User,
   FileText,
   Car,
@@ -57,10 +56,6 @@ export function HomePage({ onNavigate }: HomePageProps) {
       <section className="relative py-16 px-4 bg-gradient-to-br from-primary/5 via-background to-primary/10 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--primary)/0.1),transparent_50%)]" />
         <div className="max-w-4xl mx-auto text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-            <Sparkles className="h-4 w-4" />
-            {language === "en" ? "AI-Powered Government Assistant" : "مساعد حكومي مدعوم بالذكاء الاصطناعي"}
-          </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
             {t("appName")}
           </h1>

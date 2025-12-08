@@ -3,6 +3,9 @@ import {
   savedInquiries, 
   breachMonitors, 
   chatMessages,
+  shieldUsers,
+  shieldBreaches,
+  shieldNotifications,
   type User, 
   type InsertUser,
   type SavedInquiry,
@@ -11,6 +14,12 @@ import {
   type InsertBreachMonitor,
   type ChatMessage,
   type InsertChatMessage,
+  type ShieldUser,
+  type InsertShieldUser,
+  type ShieldBreach,
+  type InsertShieldBreach,
+  type ShieldNotification,
+  type InsertShieldNotification,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -32,6 +41,19 @@ export interface IStorage {
   
   getChatMessages(sessionId: string): Promise<ChatMessage[]>;
   createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
+  
+  getShieldUserByEmail(email: string): Promise<ShieldUser | undefined>;
+  getAllConsentedShieldUsers(): Promise<ShieldUser[]>;
+  createShieldUser(user: InsertShieldUser): Promise<ShieldUser>;
+  updateShieldUser(email: string, data: Partial<InsertShieldUser>): Promise<ShieldUser | undefined>;
+  deleteShieldUser(email: string): Promise<void>;
+  
+  getShieldBreachesByEmail(email: string): Promise<ShieldBreach[]>;
+  createShieldBreach(breach: InsertShieldBreach): Promise<ShieldBreach>;
+  hasExistingBreach(email: string, breachName: string, source: string): Promise<boolean>;
+  
+  createShieldNotification(notification: InsertShieldNotification): Promise<ShieldNotification>;
+  getShieldNotificationsByEmail(email: string): Promise<ShieldNotification[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -129,6 +151,82 @@ export class DatabaseStorage implements IStorage {
       .values(message)
       .returning();
     return created;
+  }
+
+  async getShieldUserByEmail(email: string): Promise<ShieldUser | undefined> {
+    const [user] = await db.select().from(shieldUsers).where(eq(shieldUsers.email, email.toLowerCase()));
+    return user || undefined;
+  }
+
+  async getAllConsentedShieldUsers(): Promise<ShieldUser[]> {
+    return db.select().from(shieldUsers).where(eq(shieldUsers.consent, true));
+  }
+
+  async createShieldUser(user: InsertShieldUser): Promise<ShieldUser> {
+    const [created] = await db
+      .insert(shieldUsers)
+      .values({ ...user, email: user.email.toLowerCase() })
+      .returning();
+    return created;
+  }
+
+  async updateShieldUser(email: string, data: Partial<InsertShieldUser>): Promise<ShieldUser | undefined> {
+    const [updated] = await db
+      .update(shieldUsers)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(shieldUsers.email, email.toLowerCase()))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteShieldUser(email: string): Promise<void> {
+    await db.delete(shieldUsers).where(eq(shieldUsers.email, email.toLowerCase()));
+  }
+
+  async getShieldBreachesByEmail(email: string): Promise<ShieldBreach[]> {
+    return db
+      .select()
+      .from(shieldBreaches)
+      .where(eq(shieldBreaches.email, email.toLowerCase()))
+      .orderBy(desc(shieldBreaches.seenAt));
+  }
+
+  async createShieldBreach(breach: InsertShieldBreach): Promise<ShieldBreach> {
+    const [created] = await db
+      .insert(shieldBreaches)
+      .values({ ...breach, email: breach.email.toLowerCase() })
+      .returning();
+    return created;
+  }
+
+  async hasExistingBreach(email: string, breachName: string, source: string): Promise<boolean> {
+    const [existing] = await db
+      .select()
+      .from(shieldBreaches)
+      .where(
+        and(
+          eq(shieldBreaches.email, email.toLowerCase()),
+          eq(shieldBreaches.breachName, breachName),
+          eq(shieldBreaches.source, source)
+        )
+      );
+    return !!existing;
+  }
+
+  async createShieldNotification(notification: InsertShieldNotification): Promise<ShieldNotification> {
+    const [created] = await db
+      .insert(shieldNotifications)
+      .values({ ...notification, email: notification.email.toLowerCase() })
+      .returning();
+    return created;
+  }
+
+  async getShieldNotificationsByEmail(email: string): Promise<ShieldNotification[]> {
+    return db
+      .select()
+      .from(shieldNotifications)
+      .where(eq(shieldNotifications.email, email.toLowerCase()))
+      .orderBy(desc(shieldNotifications.sentAt));
   }
 }
 

@@ -91,6 +91,57 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).pick({
   content: true,
 });
 
+export const shieldUsers = pgTable("shield_users", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  phone: text("phone"),
+  consent: boolean("consent").notNull().default(true),
+  notifyChannel: text("notify_channel").default("email"),
+  locale: text("locale").default("ar"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const shieldBreaches = pgTable("shield_breaches", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  source: text("source").notNull(),
+  breachName: text("breach_name"),
+  breachDate: text("breach_date"),
+  record: jsonb("record"),
+  seenAt: timestamp("seen_at").defaultNow(),
+});
+
+export const shieldNotifications = pgTable("shield_notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull(),
+  kind: text("kind").notNull(),
+  message: text("message").notNull(),
+  sentAt: timestamp("sent_at").defaultNow(),
+});
+
+export const insertShieldUserSchema = createInsertSchema(shieldUsers).pick({
+  email: true,
+  phone: true,
+  consent: true,
+  notifyChannel: true,
+  locale: true,
+});
+
+export const insertShieldBreachSchema = createInsertSchema(shieldBreaches).pick({
+  email: true,
+  source: true,
+  breachName: true,
+  breachDate: true,
+  record: true,
+});
+
+export const insertShieldNotificationSchema = createInsertSchema(shieldNotifications).pick({
+  email: true,
+  kind: true,
+  message: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertSavedInquiry = z.infer<typeof insertSavedInquirySchema>;
@@ -99,3 +150,9 @@ export type InsertBreachMonitor = z.infer<typeof insertBreachMonitorSchema>;
 export type BreachMonitor = typeof breachMonitors.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
 export type ChatMessage = typeof chatMessages.$inferSelect;
+export type InsertShieldUser = z.infer<typeof insertShieldUserSchema>;
+export type ShieldUser = typeof shieldUsers.$inferSelect;
+export type InsertShieldBreach = z.infer<typeof insertShieldBreachSchema>;
+export type ShieldBreach = typeof shieldBreaches.$inferSelect;
+export type InsertShieldNotification = z.infer<typeof insertShieldNotificationSchema>;
+export type ShieldNotification = typeof shieldNotifications.$inferSelect;

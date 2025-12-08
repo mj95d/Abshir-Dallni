@@ -221,3 +221,102 @@ export type InsertSavedQuery = z.infer<typeof insertSavedQuerySchema>;
 export type SavedQuery = typeof savedQueries.$inferSelect;
 export type InsertUserDevice = z.infer<typeof insertUserDeviceSchema>;
 export type UserDevice = typeof userDevices.$inferSelect;
+
+export const ticketStatusEnum = ["NEW", "IN_REVIEW", "RESOLVED", "REQUIRES_OFFICIAL_CONTACT"] as const;
+export type TicketStatus = typeof ticketStatusEnum[number];
+
+export const serviceTypeEnum = [
+  "iqama",
+  "vehicle_transfer",
+  "vehicle_renewal",
+  "reports",
+  "appointments",
+  "baladi",
+  "traffic",
+  "other"
+] as const;
+export type ServiceType = typeof serviceTypeEnum[number];
+
+export const supportTickets = pgTable("support_tickets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketNumber: varchar("ticket_number").notNull().unique(),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "set null" }),
+  serviceType: text("service_type").notNull(),
+  issueDescription: text("issue_description").notNull(),
+  userEmail: text("user_email").notNull(),
+  userPhone: text("user_phone"),
+  nationalId: text("national_id"),
+  attachments: jsonb("attachments").$type<string[]>().default([]),
+  status: text("status").notNull().default("NEW"),
+  aiSolution: jsonb("ai_solution").$type<{
+    explanation: string;
+    explanationAr: string;
+    steps: { en: string; ar: string }[];
+    documents: { en: string; ar: string }[];
+    officialLinks: { name: string; url: string }[];
+    recommendation: string;
+    recommendationAr: string;
+    canBeSolvedOnline: boolean;
+    requiresBranch: boolean;
+  } | null>(),
+  adminNotes: text("admin_notes"),
+  timeline: jsonb("timeline").$type<{
+    action: string;
+    actionAr: string;
+    timestamp: string;
+    actor: string;
+  }[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const supportTicketsRelations = relations(supportTickets, ({ one }) => ({
+  user: one(users, {
+    fields: [supportTickets.userId],
+    references: [users.id],
+  }),
+}));
+
+export const ticketComments = pgTable("ticket_comments", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  ticketId: varchar("ticket_id").notNull().references(() => supportTickets.id, { onDelete: "cascade" }),
+  authorId: varchar("author_id").references(() => users.id, { onDelete: "set null" }),
+  authorName: text("author_name").notNull(),
+  content: text("content").notNull(),
+  isAdminComment: boolean("is_admin_comment").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const ticketCommentsRelations = relations(ticketComments, ({ one }) => ({
+  ticket: one(supportTickets, {
+    fields: [ticketComments.ticketId],
+    references: [supportTickets.id],
+  }),
+  author: one(users, {
+    fields: [ticketComments.authorId],
+    references: [users.id],
+  }),
+}));
+
+export const insertSupportTicketSchema = createInsertSchema(supportTickets).pick({
+  userId: true,
+  serviceType: true,
+  issueDescription: true,
+  userEmail: true,
+  userPhone: true,
+  nationalId: true,
+  attachments: true,
+});
+
+export const insertTicketCommentSchema = createInsertSchema(ticketComments).pick({
+  ticketId: true,
+  authorId: true,
+  authorName: true,
+  content: true,
+  isAdminComment: true,
+});
+
+export type InsertSupportTicket = z.infer<typeof insertSupportTicketSchema>;
+export type SupportTicket = typeof supportTickets.$inferSelect;
+export type InsertTicketComment = z.infer<typeof insertTicketCommentSchema>;
+export type TicketComment = typeof ticketComments.$inferSelect;

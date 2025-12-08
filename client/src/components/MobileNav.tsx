@@ -1,5 +1,5 @@
 import { useLanguage } from "@/lib/LanguageContext";
-import { Home, Grid3X3, Shield, LayoutDashboard, MessageSquare } from "lucide-react";
+import { Home, Grid3X3, Shield, LayoutDashboard, MessageSquare, Ticket } from "lucide-react";
 
 interface MobileNavProps {
   currentPage: string;
@@ -12,9 +12,9 @@ export function MobileNav({ currentPage, onNavigate }: MobileNavProps) {
   const navItems = [
     { id: "home", icon: Home, label: t("home") },
     { id: "services", icon: Grid3X3, label: t("services") },
+    { id: "support", icon: Ticket, label: t("support") },
     { id: "chat", icon: MessageSquare, label: t("chat") },
     { id: "security", icon: Shield, label: t("security") },
-    { id: "dashboard", icon: LayoutDashboard, label: t("dashboard") },
   ];
 
   return (

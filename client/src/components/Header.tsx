@@ -14,6 +14,7 @@ export function Header({ currentPage, onNavigate }: HeaderProps) {
   const navItems = [
     { id: "home", label: t("home") },
     { id: "services", label: t("services") },
+    { id: "support", label: t("support") },
     { id: "security", label: t("security") },
     { id: "dashboard", label: t("dashboard") },
   ];

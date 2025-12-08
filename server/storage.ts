@@ -8,6 +8,8 @@ import {
   shieldNotifications,
   savedQueries,
   userDevices,
+  supportTickets,
+  ticketComments,
   type User, 
   type InsertUser,
   type SavedInquiry,
@@ -26,6 +28,11 @@ import {
   type InsertSavedQuery,
   type UserDevice,
   type InsertUserDevice,
+  type SupportTicket,
+  type InsertSupportTicket,
+  type TicketComment,
+  type InsertTicketComment,
+  type TicketStatus,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -73,6 +80,19 @@ export interface IStorage {
   createUserDevice(device: InsertUserDevice): Promise<UserDevice>;
   updateDeviceLastSeen(id: string): Promise<UserDevice | undefined>;
   deleteUserDevice(id: string): Promise<void>;
+  
+  getAllTickets(): Promise<SupportTicket[]>;
+  getTicketsByEmail(email: string): Promise<SupportTicket[]>;
+  getTicketByNumber(ticketNumber: string): Promise<SupportTicket | undefined>;
+  getTicketById(id: string): Promise<SupportTicket | undefined>;
+  createTicket(data: InsertSupportTicket): Promise<SupportTicket>;
+  updateTicketStatus(id: string, status: TicketStatus, actorName: string): Promise<SupportTicket | undefined>;
+  updateTicketAiSolution(id: string, aiSolution: SupportTicket["aiSolution"]): Promise<SupportTicket | undefined>;
+  updateTicketAdminNotes(id: string, notes: string): Promise<SupportTicket | undefined>;
+  deleteTicket(id: string): Promise<void>;
+  
+  getTicketComments(ticketId: string): Promise<TicketComment[]>;
+  addTicketComment(comment: InsertTicketComment): Promise<TicketComment>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -376,6 +396,155 @@ export class DatabaseStorage implements IStorage {
 
   async deleteUserDevice(id: string): Promise<void> {
     await db.delete(userDevices).where(eq(userDevices.id, id));
+  }
+
+  private generateTicketNumber(): string {
+    const prefix = "DLN";
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${prefix}-${timestamp}-${random}`;
+  }
+
+  async getAllTickets(): Promise<SupportTicket[]> {
+    return db
+      .select()
+      .from(supportTickets)
+      .orderBy(desc(supportTickets.createdAt));
+  }
+
+  async getTicketsByEmail(email: string): Promise<SupportTicket[]> {
+    return db
+      .select()
+      .from(supportTickets)
+      .where(eq(supportTickets.userEmail, email.toLowerCase()))
+      .orderBy(desc(supportTickets.createdAt));
+  }
+
+  async getTicketByNumber(ticketNumber: string): Promise<SupportTicket | undefined> {
+    const [ticket] = await db
+      .select()
+      .from(supportTickets)
+      .where(eq(supportTickets.ticketNumber, ticketNumber));
+    return ticket || undefined;
+  }
+
+  async getTicketById(id: string): Promise<SupportTicket | undefined> {
+    const [ticket] = await db
+      .select()
+      .from(supportTickets)
+      .where(eq(supportTickets.id, id));
+    return ticket || undefined;
+  }
+
+  async createTicket(data: InsertSupportTicket): Promise<SupportTicket> {
+    const ticketNumber = this.generateTicketNumber();
+    const initialTimeline = [{
+      action: "Ticket created",
+      actionAr: "تم إنشاء التذكرة",
+      timestamp: new Date().toISOString(),
+      actor: "System",
+    }];
+
+    const [ticket] = await db
+      .insert(supportTickets)
+      .values({
+        ...data,
+        ticketNumber,
+        userEmail: data.userEmail.toLowerCase(),
+        status: "NEW",
+        timeline: initialTimeline,
+      })
+      .returning();
+    return ticket;
+  }
+
+  async updateTicketStatus(id: string, status: TicketStatus, actorName: string): Promise<SupportTicket | undefined> {
+    const ticket = await this.getTicketById(id);
+    if (!ticket) return undefined;
+
+    const statusLabels: Record<TicketStatus, { en: string; ar: string }> = {
+      NEW: { en: "Status changed to New", ar: "تم تغيير الحالة إلى جديد" },
+      IN_REVIEW: { en: "Status changed to In Review", ar: "تم تغيير الحالة إلى قيد المراجعة" },
+      RESOLVED: { en: "Status changed to Resolved", ar: "تم تغيير الحالة إلى تم الحل" },
+      REQUIRES_OFFICIAL_CONTACT: { en: "Status changed to Requires Official Contact", ar: "تم تغيير الحالة إلى يتطلب التواصل الرسمي" },
+    };
+
+    const newTimelineEntry = {
+      action: statusLabels[status].en,
+      actionAr: statusLabels[status].ar,
+      timestamp: new Date().toISOString(),
+      actor: actorName,
+    };
+
+    const currentTimeline = (ticket.timeline as any[]) || [];
+
+    const [updated] = await db
+      .update(supportTickets)
+      .set({
+        status,
+        timeline: [...currentTimeline, newTimelineEntry],
+        updatedAt: new Date(),
+      })
+      .where(eq(supportTickets.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async updateTicketAiSolution(id: string, aiSolution: SupportTicket["aiSolution"]): Promise<SupportTicket | undefined> {
+    const ticket = await this.getTicketById(id);
+    if (!ticket) return undefined;
+
+    const newTimelineEntry = {
+      action: "AI analysis completed",
+      actionAr: "تم اكتمال التحليل الذكي",
+      timestamp: new Date().toISOString(),
+      actor: "AI Assistant",
+    };
+
+    const currentTimeline = (ticket.timeline as any[]) || [];
+
+    const [updated] = await db
+      .update(supportTickets)
+      .set({
+        aiSolution,
+        timeline: [...currentTimeline, newTimelineEntry],
+        updatedAt: new Date(),
+      })
+      .where(eq(supportTickets.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async updateTicketAdminNotes(id: string, notes: string): Promise<SupportTicket | undefined> {
+    const [updated] = await db
+      .update(supportTickets)
+      .set({
+        adminNotes: notes,
+        updatedAt: new Date(),
+      })
+      .where(eq(supportTickets.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteTicket(id: string): Promise<void> {
+    await db.delete(supportTickets).where(eq(supportTickets.id, id));
+  }
+
+  async getTicketComments(ticketId: string): Promise<TicketComment[]> {
+    return db
+      .select()
+      .from(ticketComments)
+      .where(eq(ticketComments.ticketId, ticketId))
+      .orderBy(ticketComments.createdAt);
+  }
+
+  async addTicketComment(comment: InsertTicketComment): Promise<TicketComment> {
+    const [created] = await db
+      .insert(ticketComments)
+      .values(comment)
+      .returning();
+    return created;
   }
 }
 

@@ -678,5 +678,214 @@ export async function registerRoutes(
     }
   });
 
+  const createTicketSchema = z.object({
+    serviceType: z.string(),
+    issueDescription: z.string().min(10),
+    userEmail: z.string().email(),
+    userPhone: z.string().optional(),
+    nationalId: z.string().optional(),
+    attachments: z.array(z.string()).optional(),
+    userId: z.string().optional(),
+  });
+
+  app.post("/api/tickets", async (req, res) => {
+    try {
+      const parsed = createTicketSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+
+      const ticket = await storage.createTicket(parsed.data);
+      res.status(201).json(ticket);
+    } catch (error) {
+      console.error("Create ticket error:", error);
+      res.status(500).json({ error: "Failed to create ticket" });
+    }
+  });
+
+  app.get("/api/tickets", async (req, res) => {
+    try {
+      const tickets = await storage.getAllTickets();
+      res.json(tickets);
+    } catch (error) {
+      console.error("Get all tickets error:", error);
+      res.status(500).json({ error: "Failed to fetch tickets" });
+    }
+  });
+
+  app.get("/api/tickets/user/:email", async (req, res) => {
+    try {
+      const { email } = req.params;
+      const tickets = await storage.getTicketsByEmail(email);
+      res.json(tickets);
+    } catch (error) {
+      console.error("Get user tickets error:", error);
+      res.status(500).json({ error: "Failed to fetch tickets" });
+    }
+  });
+
+  app.get("/api/tickets/:ticketNumber", async (req, res) => {
+    try {
+      const { ticketNumber } = req.params;
+      const ticket = await storage.getTicketByNumber(ticketNumber);
+      
+      if (!ticket) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+      
+      res.json(ticket);
+    } catch (error) {
+      console.error("Get ticket error:", error);
+      res.status(500).json({ error: "Failed to fetch ticket" });
+    }
+  });
+
+  const updateStatusSchema = z.object({
+    status: z.enum(["NEW", "IN_REVIEW", "RESOLVED", "REQUIRES_OFFICIAL_CONTACT"]),
+    actorName: z.string(),
+  });
+
+  app.put("/api/tickets/:id/status", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const parsed = updateStatusSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+
+      const ticket = await storage.updateTicketStatus(id, parsed.data.status, parsed.data.actorName);
+      
+      if (!ticket) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+      
+      res.json(ticket);
+    } catch (error) {
+      console.error("Update ticket status error:", error);
+      res.status(500).json({ error: "Failed to update ticket status" });
+    }
+  });
+
+  const aiSolutionSchema = z.object({
+    explanation: z.string(),
+    explanationAr: z.string(),
+    steps: z.array(z.object({ en: z.string(), ar: z.string() })),
+    documents: z.array(z.object({ en: z.string(), ar: z.string() })),
+    officialLinks: z.array(z.object({ name: z.string(), url: z.string() })),
+    recommendation: z.string(),
+    recommendationAr: z.string(),
+    canBeSolvedOnline: z.boolean(),
+    requiresBranch: z.boolean(),
+  });
+
+  app.put("/api/tickets/:id/ai-solution", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const parsed = aiSolutionSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+
+      const ticket = await storage.updateTicketAiSolution(id, parsed.data);
+      
+      if (!ticket) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+      
+      res.json(ticket);
+    } catch (error) {
+      console.error("Update ticket AI solution error:", error);
+      res.status(500).json({ error: "Failed to update AI solution" });
+    }
+  });
+
+  const adminNotesSchema = z.object({
+    notes: z.string(),
+  });
+
+  app.put("/api/tickets/:id/admin-notes", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const parsed = adminNotesSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+
+      const ticket = await storage.updateTicketAdminNotes(id, parsed.data.notes);
+      
+      if (!ticket) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+      
+      res.json(ticket);
+    } catch (error) {
+      console.error("Update ticket admin notes error:", error);
+      res.status(500).json({ error: "Failed to update admin notes" });
+    }
+  });
+
+  app.delete("/api/tickets/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteTicket(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete ticket error:", error);
+      res.status(500).json({ error: "Failed to delete ticket" });
+    }
+  });
+
+  const ticketCommentSchema = z.object({
+    ticketId: z.string(),
+    authorId: z.string().optional(),
+    authorName: z.string(),
+    content: z.string().min(1),
+    isAdminComment: z.boolean().optional(),
+  });
+
+  app.get("/api/tickets/:ticketId/comments", async (req, res) => {
+    try {
+      const { ticketId } = req.params;
+      const ticket = await storage.getTicketById(ticketId);
+      
+      if (!ticket) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+      
+      const comments = await storage.getTicketComments(ticketId);
+      res.json(comments);
+    } catch (error) {
+      console.error("Get ticket comments error:", error);
+      res.status(500).json({ error: "Failed to fetch comments" });
+    }
+  });
+
+  app.post("/api/tickets/:ticketId/comments", async (req, res) => {
+    try {
+      const { ticketId } = req.params;
+      const parsed = ticketCommentSchema.safeParse({ ...req.body, ticketId });
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+
+      const ticket = await storage.getTicketById(ticketId);
+      
+      if (!ticket) {
+        return res.status(404).json({ error: "Ticket not found" });
+      }
+
+      const comment = await storage.addTicketComment(parsed.data);
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error("Add ticket comment error:", error);
+      res.status(500).json({ error: "Failed to add comment" });
+    }
+  });
+
   return httpServer;
 }

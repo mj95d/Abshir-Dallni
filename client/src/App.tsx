@@ -12,6 +12,8 @@ import { ServiceCategoryGrid } from "@/components/ServiceCategoryGrid";
 import { ChatInterface } from "@/components/ChatInterface";
 import { DigitalShield } from "@/components/DigitalShield";
 import { Dashboard } from "@/components/Dashboard";
+import { SupportCenter } from "@/components/SupportCenter";
+import { AdminDashboard } from "@/components/AdminDashboard";
 
 function AppContent() {
   const [currentPage, setCurrentPage] = useState("home");
@@ -44,6 +46,10 @@ function AppContent() {
             <Dashboard />
           </div>
         );
+      case "support":
+        return <SupportCenter />;
+      case "admin":
+        return <AdminDashboard />;
       default:
         return <HomePage onNavigate={setCurrentPage} />;
     }

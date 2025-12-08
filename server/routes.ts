@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateChatResponse, type ChatRequest } from "./openai";
-import { insertSavedInquirySchema, insertBreachMonitorSchema, insertChatMessageSchema, insertShieldUserSchema } from "@shared/schema";
+import { insertSavedInquirySchema, insertBreachMonitorSchema, insertChatMessageSchema, insertShieldUserSchema, insertSavedQuerySchema, insertUserDeviceSchema } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
 
@@ -497,6 +497,184 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Shield cron error:", error);
       res.status(500).json({ error: "Failed to run cron job" });
+    }
+  });
+
+  app.get("/api/saved-queries", async (req, res) => {
+    try {
+      const defaults = storage.getDefaultSavedQueries();
+      res.json(defaults);
+    } catch (error) {
+      console.error("Get default saved queries error:", error);
+      res.status(500).json({ error: "Failed to fetch saved queries" });
+    }
+  });
+
+  app.get("/api/saved-queries/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const userQueries = await storage.getSavedQueries(userId);
+      const defaults = storage.getDefaultSavedQueries();
+      const combined = [...userQueries, ...defaults.filter(d => 
+        !userQueries.some(q => q.serviceKey === d.serviceKey)
+      )];
+      res.json(combined);
+    } catch (error) {
+      console.error("Get saved queries error:", error);
+      res.status(500).json({ error: "Failed to fetch saved queries" });
+    }
+  });
+
+  app.post("/api/saved-queries", async (req, res) => {
+    try {
+      const parsed = insertSavedQuerySchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+
+      const existing = await storage.getSavedQueryByServiceKey(
+        parsed.data.userId || "",
+        parsed.data.serviceKey
+      );
+
+      if (existing) {
+        return res.status(409).json({ error: "Query already saved" });
+      }
+
+      const query = await storage.createSavedQuery(parsed.data);
+      res.status(201).json(query);
+    } catch (error) {
+      console.error("Create saved query error:", error);
+      res.status(500).json({ error: "Failed to save query" });
+    }
+  });
+
+  app.post("/api/saved-queries/:id/use", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updated = await storage.updateSavedQueryUsage(id);
+      res.json(updated);
+    } catch (error) {
+      console.error("Update saved query usage error:", error);
+      res.status(500).json({ error: "Failed to update usage" });
+    }
+  });
+
+  app.delete("/api/saved-queries/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteSavedQuery(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete saved query error:", error);
+      res.status(500).json({ error: "Failed to delete query" });
+    }
+  });
+
+  const deviceUpdateSchema = z.object({
+    userId: z.string().optional(),
+    device: z.string(),
+    os: z.string(),
+    browser: z.string(),
+    userAgent: z.string(),
+    screen: z.string().optional(),
+    theme: z.string().optional(),
+    lang: z.string().optional(),
+  });
+
+  app.post("/api/device/update", async (req, res) => {
+    try {
+      const parsed = deviceUpdateSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+
+      const { userId, device, os, browser, userAgent, screen, theme, lang } = parsed.data;
+
+      if (!userId) {
+        return res.json({ 
+          message: "Device info received (no user session)",
+          device,
+          os,
+          browser,
+          isNewDevice: false 
+        });
+      }
+
+      const existingDevice = await storage.getDeviceByUserAgent(userId, userAgent);
+
+      if (existingDevice) {
+        await storage.updateDeviceLastSeen(existingDevice.id);
+        return res.json({ 
+          message: "Device updated", 
+          device: existingDevice,
+          isNewDevice: false 
+        });
+      }
+
+      const userDevices = await storage.getUserDevices(userId);
+      const isNewDevice = userDevices.length > 0;
+
+      const newDevice = await storage.createUserDevice({
+        userId,
+        device,
+        os,
+        browser,
+        userAgent,
+        screen,
+        theme,
+        lang,
+      });
+
+      res.status(201).json({ 
+        message: isNewDevice ? "New device detected" : "First device registered",
+        device: newDevice,
+        isNewDevice,
+        previousDevices: isNewDevice ? userDevices.slice(0, 3).map(d => ({
+          device: d.device,
+          browser: d.browser,
+          lastSeen: d.lastSeen
+        })) : []
+      });
+    } catch (error) {
+      console.error("Device update error:", error);
+      res.status(500).json({ error: "Failed to update device" });
+    }
+  });
+
+  app.get("/api/device/:userId", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const devices = await storage.getUserDevices(userId);
+      res.json(devices);
+    } catch (error) {
+      console.error("Get devices error:", error);
+      res.status(500).json({ error: "Failed to fetch devices" });
+    }
+  });
+
+  app.get("/api/device/:userId/current", async (req, res) => {
+    try {
+      const { userId } = req.params;
+      const devices = await storage.getUserDevices(userId);
+      const current = devices[0];
+      res.json(current || null);
+    } catch (error) {
+      console.error("Get current device error:", error);
+      res.status(500).json({ error: "Failed to fetch current device" });
+    }
+  });
+
+  app.delete("/api/device/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteUserDevice(id);
+      res.status(204).send();
+    } catch (error) {
+      console.error("Delete device error:", error);
+      res.status(500).json({ error: "Failed to delete device" });
     }
   });
 

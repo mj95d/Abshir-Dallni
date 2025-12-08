@@ -1,0 +1,221 @@
+PROMPT
+
+Build a complete feature called “Dallni Support Center”.
+This feature must operate inside the Dallni platform and must NOT integrate directly with Absher or send tickets to Absher.
+It only helps users organize their issues, get AI guidance, and optionally open Absher’s official support page.
+
+⭐ Feature Requirements
+1) Create Support Ticket (New Ticket Form)
+
+Build a form where the user can submit a support request.
+The form must include:
+
+serviceType (dropdown: إقامة، نقل ملكية، تجديد استمارة، بلاغات، مواعيد، بلدي، مرور…)
+
+issueDescription (text)
+
+userEmail
+
+userPhone
+
+nationalID (optional)
+
+attachments (images/PDF)
+
+submit button
+
+After submission:
+
+Ticket stored in database
+
+User sees confirmation + ticket number
+
+2) AI Assistant (Pre-Support Smart Helper)
+
+Before the ticket reaches the human dashboard, the AI must:
+
+Read the user’s issue
+
+Analyze it
+
+Suggest official solutions
+
+Provide official Absher links only
+
+Tell the user if:
+
+the service requires a branch
+
+the service can be completed online
+
+the service requires specific documents
+
+the issue is not related to Absher
+
+AI output format:
+
+Short explanation
+
+Step-by-step instructions
+
+Required documents
+
+Official links
+
+Recommendation:
+
+either “Your issue can be solved directly here → [Absher link]”
+
+OR “Your ticket has been sent to Dallni Support Center for further help.”
+
+3) Ticket Status Workflow
+
+Every ticket must have one of the following statuses:
+
+NEW
+
+IN REVIEW
+
+RESOLVED
+
+REQUIRES OFFICIAL CONTACT
+(This means: “We recommend using Absher official support link.”)
+
+Create backend endpoints to update these statuses:
+
+/api/tickets/create
+
+/api/tickets/updateStatus
+
+/api/tickets/getUserTickets
+
+4) Ticket Details Page
+
+For each ticket, show:
+
+Ticket number
+
+Status (with color tags)
+
+User info
+
+Service type
+
+Description
+
+AI recommended solution
+
+Attachments
+
+Timeline of updates
+
+5) Admin Dashboard (For Dallni Team Only)
+
+Build a simple dashboard:
+
+List all tickets
+
+Filter by status
+
+View details
+
+Add comments/notes
+
+Change status
+
+Mark ticket as “Resolved”
+
+Mark ticket as “Requires Official Absher Support”
+
+6) Absher Official Support Button
+
+Every ticket page must include a button:
+
+🔗 Open Official Absher Support
+
+This must open:
+
+https://www.absher.sa/
+
+
+The system must NOT:
+
+send data to Absher
+
+auto-fill the user’s data
+
+perform login
+
+contact internal APIs
+
+Just open the official website.
+
+⭐ 7) Security & Compliance Requirements
+
+DO NOT store passwords or OTPs
+
+DO NOT attempt Absher login
+
+DO NOT access restricted government APIs
+
+All user data must be stored securely
+
+Allow users to delete their tickets
+
+National ID is optional
+
+Attachments must be virus-scanned or validated
+
+All links must be official
+
+⭐ 8) UX Requirements
+
+UI/UX must be:
+
+Arabic (RTL)
+
+Modern
+
+Simple for elderly users
+
+With large buttons
+
+Clear ticket timeline
+
+AI response shown in a clean card
+
+Use labels such as:
+
+فتح تذكرة جديدة
+
+مركز دعم دلّني
+
+جاري المراجعة
+
+تم حل المشكلة
+
+ننصحك بالتواصل مع الدعم الرسمي لأبشر
+
+⭐ Final Output
+
+The system must generate:
+
+Full frontend pages
+
+Backend API routes
+
+Database models
+
+AI assistant integration
+
+Admin dashboard
+
+Ticket UI and timeline
+
+Absher contact button
+
+Security constraints
+
+All in one integrated module called:
+
+Dallni Support Center

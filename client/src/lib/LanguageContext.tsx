@@ -83,6 +83,20 @@ const translations: Translations = {
   noBreachesDetected: { en: "No Breaches Detected", ar: "لا توجد تسريبات" },
   lastUpdated: { en: "Last Updated", ar: "آخر تحديث" },
   viewNotifications: { en: "View Notifications", ar: "عرض الإشعارات" },
+  deviceSecurity: { en: "Device Security", ar: "أمان الجهاز" },
+  currentDevice: { en: "Current Device", ar: "الجهاز الحالي" },
+  newDeviceDetected: { en: "New Device Detected", ar: "تم اكتشاف جهاز جديد" },
+  newDeviceAlert: { en: "We detected a login from a new device. If this wasn't you, please secure your account immediately.", ar: "اكتشفنا تسجيل دخول من جهاز جديد. إذا لم يكن هذا أنت، يرجى تأمين حسابك فوراً." },
+  itsMe: { en: "It's Me", ar: "هذا أنا" },
+  secureAccount: { en: "Secure Account", ar: "تأمين الحساب" },
+  yourDevices: { en: "Your Devices", ar: "أجهزتك" },
+  viewAllDevices: { en: "View All Devices", ar: "عرض جميع الأجهزة" },
+  yourOtherDevices: { en: "Your Other Devices", ar: "أجهزتك الأخرى" },
+  protected: { en: "Protected", ar: "محمي" },
+  noSavedInquiries: { en: "No saved inquiries yet", ar: "لا توجد استفسارات محفوظة" },
+  upcomingRenewals: { en: "Upcoming Renewals", ar: "التجديدات القادمة" },
+  noPendingRenewals: { en: "No pending renewals", ar: "لا توجد تجديدات معلقة" },
+  addReminder: { en: "Add Reminder", ar: "إضافة تذكير" },
 };
 
 interface LanguageContextType {

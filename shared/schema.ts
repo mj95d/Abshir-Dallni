@@ -142,6 +142,67 @@ export const insertShieldNotificationSchema = createInsertSchema(shieldNotificat
   message: true,
 });
 
+export const savedQueries = pgTable("saved_queries", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  titleAr: text("title_ar").notNull(),
+  type: text("type").notNull(),
+  icon: text("icon").default("FileText"),
+  serviceKey: text("service_key").notNull(),
+  usageCount: integer("usage_count").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const savedQueriesRelations = relations(savedQueries, ({ one }) => ({
+  user: one(users, {
+    fields: [savedQueries.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userDevices = pgTable("user_devices", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: "cascade" }),
+  device: text("device").notNull(),
+  os: text("os").notNull(),
+  browser: text("browser").notNull(),
+  userAgent: text("user_agent").notNull(),
+  screen: text("screen"),
+  theme: text("theme"),
+  lang: text("lang"),
+  lastSeen: timestamp("last_seen").defaultNow(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const userDevicesRelations = relations(userDevices, ({ one }) => ({
+  user: one(users, {
+    fields: [userDevices.userId],
+    references: [users.id],
+  }),
+}));
+
+export const insertSavedQuerySchema = createInsertSchema(savedQueries).pick({
+  userId: true,
+  title: true,
+  titleAr: true,
+  type: true,
+  icon: true,
+  serviceKey: true,
+});
+
+export const insertUserDeviceSchema = createInsertSchema(userDevices).pick({
+  userId: true,
+  device: true,
+  os: true,
+  browser: true,
+  userAgent: true,
+  screen: true,
+  theme: true,
+  lang: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertSavedInquiry = z.infer<typeof insertSavedInquirySchema>;
@@ -156,3 +217,7 @@ export type InsertShieldBreach = z.infer<typeof insertShieldBreachSchema>;
 export type ShieldBreach = typeof shieldBreaches.$inferSelect;
 export type InsertShieldNotification = z.infer<typeof insertShieldNotificationSchema>;
 export type ShieldNotification = typeof shieldNotifications.$inferSelect;
+export type InsertSavedQuery = z.infer<typeof insertSavedQuerySchema>;
+export type SavedQuery = typeof savedQueries.$inferSelect;
+export type InsertUserDevice = z.infer<typeof insertUserDeviceSchema>;
+export type UserDevice = typeof userDevices.$inferSelect;

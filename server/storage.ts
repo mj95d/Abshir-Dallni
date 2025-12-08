@@ -6,6 +6,8 @@ import {
   shieldUsers,
   shieldBreaches,
   shieldNotifications,
+  savedQueries,
+  userDevices,
   type User, 
   type InsertUser,
   type SavedInquiry,
@@ -20,9 +22,13 @@ import {
   type InsertShieldBreach,
   type ShieldNotification,
   type InsertShieldNotification,
+  type SavedQuery,
+  type InsertSavedQuery,
+  type UserDevice,
+  type InsertUserDevice,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
@@ -54,6 +60,19 @@ export interface IStorage {
   
   createShieldNotification(notification: InsertShieldNotification): Promise<ShieldNotification>;
   getShieldNotificationsByEmail(email: string): Promise<ShieldNotification[]>;
+  
+  getSavedQueries(userId: string): Promise<SavedQuery[]>;
+  getSavedQueryByServiceKey(userId: string, serviceKey: string): Promise<SavedQuery | undefined>;
+  createSavedQuery(query: InsertSavedQuery): Promise<SavedQuery>;
+  updateSavedQueryUsage(id: string): Promise<SavedQuery | undefined>;
+  deleteSavedQuery(id: string): Promise<void>;
+  getDefaultSavedQueries(): SavedQuery[];
+  
+  getUserDevices(userId: string): Promise<UserDevice[]>;
+  getDeviceByUserAgent(userId: string, userAgent: string): Promise<UserDevice | undefined>;
+  createUserDevice(device: InsertUserDevice): Promise<UserDevice>;
+  updateDeviceLastSeen(id: string): Promise<UserDevice | undefined>;
+  deleteUserDevice(id: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -227,6 +246,136 @@ export class DatabaseStorage implements IStorage {
       .from(shieldNotifications)
       .where(eq(shieldNotifications.email, email.toLowerCase()))
       .orderBy(desc(shieldNotifications.sentAt));
+  }
+
+  async getSavedQueries(userId: string): Promise<SavedQuery[]> {
+    return db
+      .select()
+      .from(savedQueries)
+      .where(eq(savedQueries.userId, userId))
+      .orderBy(desc(savedQueries.usageCount));
+  }
+
+  async getSavedQueryByServiceKey(userId: string, serviceKey: string): Promise<SavedQuery | undefined> {
+    const [query] = await db
+      .select()
+      .from(savedQueries)
+      .where(and(eq(savedQueries.userId, userId), eq(savedQueries.serviceKey, serviceKey)));
+    return query || undefined;
+  }
+
+  async createSavedQuery(query: InsertSavedQuery): Promise<SavedQuery> {
+    const [created] = await db
+      .insert(savedQueries)
+      .values(query)
+      .returning();
+    return created;
+  }
+
+  async updateSavedQueryUsage(id: string): Promise<SavedQuery | undefined> {
+    const [updated] = await db
+      .update(savedQueries)
+      .set({ 
+        usageCount: sql`${savedQueries.usageCount} + 1`,
+        updatedAt: new Date() 
+      })
+      .where(eq(savedQueries.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteSavedQuery(id: string): Promise<void> {
+    await db.delete(savedQueries).where(eq(savedQueries.id, id));
+  }
+
+  getDefaultSavedQueries(): SavedQuery[] {
+    return [
+      {
+        id: "default-1",
+        userId: null,
+        title: "Iqama Renewal Steps",
+        titleAr: "خطوات تجديد الإقامة",
+        type: "steps",
+        icon: "FileText",
+        serviceKey: "renew_iqama",
+        usageCount: 0,
+        createdAt: null,
+        updatedAt: null,
+      },
+      {
+        id: "default-2",
+        userId: null,
+        title: "Traffic Violations Check",
+        titleAr: "الاستعلام عن المخالفات",
+        type: "flow",
+        icon: "Car",
+        serviceKey: "check_violations",
+        usageCount: 0,
+        createdAt: null,
+        updatedAt: null,
+      },
+      {
+        id: "default-3",
+        userId: null,
+        title: "Bank Account Requirements",
+        titleAr: "متطلبات فتح حساب بنكي",
+        type: "requirements",
+        icon: "CreditCard",
+        serviceKey: "bank_account",
+        usageCount: 0,
+        createdAt: null,
+        updatedAt: null,
+      },
+      {
+        id: "default-4",
+        userId: null,
+        title: "Vehicle Registration Renewal",
+        titleAr: "تجديد الاستمارة",
+        type: "steps",
+        icon: "Car",
+        serviceKey: "renew_vehicle",
+        usageCount: 0,
+        createdAt: null,
+        updatedAt: null,
+      },
+    ];
+  }
+
+  async getUserDevices(userId: string): Promise<UserDevice[]> {
+    return db
+      .select()
+      .from(userDevices)
+      .where(eq(userDevices.userId, userId))
+      .orderBy(desc(userDevices.lastSeen));
+  }
+
+  async getDeviceByUserAgent(userId: string, userAgent: string): Promise<UserDevice | undefined> {
+    const [device] = await db
+      .select()
+      .from(userDevices)
+      .where(and(eq(userDevices.userId, userId), eq(userDevices.userAgent, userAgent)));
+    return device || undefined;
+  }
+
+  async createUserDevice(device: InsertUserDevice): Promise<UserDevice> {
+    const [created] = await db
+      .insert(userDevices)
+      .values(device)
+      .returning();
+    return created;
+  }
+
+  async updateDeviceLastSeen(id: string): Promise<UserDevice | undefined> {
+    const [updated] = await db
+      .update(userDevices)
+      .set({ lastSeen: new Date() })
+      .where(eq(userDevices.id, id))
+      .returning();
+    return updated || undefined;
+  }
+
+  async deleteUserDevice(id: string): Promise<void> {
+    await db.delete(userDevices).where(eq(userDevices.id, id));
   }
 }
 

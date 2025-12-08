@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { generateChatResponse, type ChatRequest } from "./openai";
-import { insertSavedInquirySchema, insertBreachMonitorSchema, insertChatMessageSchema } from "@shared/schema";
+import { insertSavedInquirySchema, insertBreachMonitorSchema, insertChatMessageSchema, insertShieldUserSchema } from "@shared/schema";
 import { z } from "zod";
 import crypto from "crypto";
 
@@ -45,7 +45,7 @@ async function checkLeakCheckBreaches(email: string): Promise<{
     const data: LeakCheckResponse = await response.json();
 
     if (!data.success) {
-      if (data.error) {
+      if (data.error && data.error.toLowerCase() !== "not found") {
         throw new Error(`LeakCheck error: ${data.error}`);
       }
       return { found: false };
@@ -258,6 +258,245 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Get user error:", error);
       res.status(500).json({ error: "Failed to fetch user" });
+    }
+  });
+
+  const shieldEmailSchema = z.object({
+    email: z.string().email(),
+  });
+
+  const shieldSubscribeSchema = z.object({
+    email: z.string().email(),
+    phone: z.string().optional(),
+    consent: z.boolean(),
+    notifyChannel: z.enum(["email", "sms", "both"]).optional(),
+    locale: z.enum(["ar", "en"]).optional(),
+  });
+
+  app.post("/api/shield/subscribe", async (req, res) => {
+    try {
+      const parsed = shieldSubscribeSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request", details: parsed.error.issues });
+      }
+
+      const { email, phone, consent, notifyChannel, locale } = parsed.data;
+
+      if (!consent) {
+        return res.status(400).json({ error: "Consent is required for monitoring" });
+      }
+
+      const existingUser = await storage.getShieldUserByEmail(email);
+      
+      if (existingUser) {
+        const updated = await storage.updateShieldUser(email, {
+          phone,
+          consent,
+          notifyChannel: notifyChannel || "email",
+          locale: locale || "ar",
+        });
+        return res.json({ message: "Subscription updated", user: updated });
+      }
+
+      const user = await storage.createShieldUser({
+        email,
+        phone,
+        consent,
+        notifyChannel: notifyChannel || "email",
+        locale: locale || "ar",
+      });
+
+      res.status(201).json({ message: "Subscribed successfully", user });
+    } catch (error) {
+      console.error("Shield subscribe error:", error);
+      res.status(500).json({ error: "Failed to subscribe" });
+    }
+  });
+
+  app.post("/api/shield/status", async (req, res) => {
+    try {
+      const parsed = shieldEmailSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid email address" });
+      }
+
+      const { email } = parsed.data;
+      const user = await storage.getShieldUserByEmail(email);
+      
+      if (!user) {
+        return res.json({ subscribed: false });
+      }
+
+      const breaches = await storage.getShieldBreachesByEmail(email);
+      const notifications = await storage.getShieldNotificationsByEmail(email);
+
+      res.json({
+        subscribed: user.consent,
+        user: {
+          email: user.email,
+          notifyChannel: user.notifyChannel,
+          locale: user.locale,
+          createdAt: user.createdAt,
+        },
+        breachCount: breaches.length,
+        recentBreaches: breaches.slice(0, 5),
+        notificationCount: notifications.length,
+      });
+    } catch (error) {
+      console.error("Shield status error:", error);
+      res.status(500).json({ error: "Failed to get status" });
+    }
+  });
+
+  app.post("/api/shield/check", async (req, res) => {
+    try {
+      const parsed = shieldEmailSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid email address" });
+      }
+
+      const { email } = parsed.data;
+      const result = await checkLeakCheckBreaches(email);
+
+      if (result.found && result.breaches) {
+        for (const breach of result.breaches) {
+          const exists = await storage.hasExistingBreach(email, breach.name, "leakcheck");
+          
+          if (!exists) {
+            await storage.createShieldBreach({
+              email,
+              source: "leakcheck",
+              breachName: breach.name,
+              breachDate: breach.date,
+              record: {
+                dataTypes: breach.dataTypes,
+                severity: breach.severity,
+              },
+            });
+          }
+        }
+      }
+
+      const storedBreaches = await storage.getShieldBreachesByEmail(email);
+
+      res.json({
+        found: result.found,
+        breaches: result.breaches,
+        storedBreachCount: storedBreaches.length,
+      });
+    } catch (error) {
+      console.error("Shield check error:", error);
+      res.status(500).json({ error: "Failed to check for breaches" });
+    }
+  });
+
+  app.post("/api/shield/unsubscribe", async (req, res) => {
+    try {
+      const parsed = shieldEmailSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid email address" });
+      }
+
+      const { email } = parsed.data;
+      const user = await storage.getShieldUserByEmail(email);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await storage.updateShieldUser(email, { consent: false });
+
+      res.json({ message: "Unsubscribed successfully" });
+    } catch (error) {
+      console.error("Shield unsubscribe error:", error);
+      res.status(500).json({ error: "Failed to unsubscribe" });
+    }
+  });
+
+  app.post("/api/shield/delete", async (req, res) => {
+    try {
+      const parsed = shieldEmailSchema.safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid email address" });
+      }
+
+      const { email } = parsed.data;
+      const user = await storage.getShieldUserByEmail(email);
+      
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await storage.deleteShieldUser(email);
+
+      res.json({ message: "Account deleted successfully" });
+    } catch (error) {
+      console.error("Shield delete error:", error);
+      res.status(500).json({ error: "Failed to delete account" });
+    }
+  });
+
+  app.post("/api/shield/cron", async (req, res) => {
+    try {
+      const users = await storage.getAllConsentedShieldUsers();
+      const results: { email: string; newBreaches: number }[] = [];
+
+      for (const user of users) {
+        try {
+          const result = await checkLeakCheckBreaches(user.email);
+          let newBreachCount = 0;
+
+          if (result.found && result.breaches) {
+            for (const breach of result.breaches) {
+              const exists = await storage.hasExistingBreach(user.email, breach.name, "leakcheck");
+              
+              if (!exists) {
+                await storage.createShieldBreach({
+                  email: user.email,
+                  source: "leakcheck",
+                  breachName: breach.name,
+                  breachDate: breach.date,
+                  record: {
+                    dataTypes: breach.dataTypes,
+                    severity: breach.severity,
+                  },
+                });
+                newBreachCount++;
+              }
+            }
+
+            if (newBreachCount > 0) {
+              const message = user.locale === "ar"
+                ? `تم اكتشاف ${newBreachCount} تسريب(ات) جديدة لبريدك الإلكتروني. يرجى تغيير كلمات المرور فوراً.`
+                : `${newBreachCount} new breach(es) detected for your email. Please change your passwords immediately.`;
+
+              await storage.createShieldNotification({
+                email: user.email,
+                kind: "breach_alert",
+                message,
+              });
+            }
+          }
+
+          results.push({ email: user.email, newBreaches: newBreachCount });
+        } catch (userError) {
+          console.error(`Error checking breaches for ${user.email}:`, userError);
+        }
+      }
+
+      res.json({
+        message: "Cron job completed",
+        usersChecked: users.length,
+        results,
+      });
+    } catch (error) {
+      console.error("Shield cron error:", error);
+      res.status(500).json({ error: "Failed to run cron job" });
     }
   });
 

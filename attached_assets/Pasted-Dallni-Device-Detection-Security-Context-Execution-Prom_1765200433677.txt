@@ -1,0 +1,225 @@
+Dallni — Device Detection & Security Context
+⭐ Execution Prompt (جاهز للتنفيذ)
+
+Build a complete “Device Detection” module inside the Dallni platform.
+This module must detect the user’s device, browser, operating system, and update this information in the backend so it can be used for security alerts, personalization, and user experience improvements.
+Follow all instructions below exactly.
+
+1) Frontend Requirements
+
+Implement a getDeviceInfo() function that detects:
+
+Device type: iPhone, Android, Windows PC, MacBook, iPad, Tablet, Desktop
+
+Operating System (OS): iOS, Android, Windows, macOS, Linux
+
+Browser name: Chrome, Safari, Firefox, Edge
+
+Full User Agent (for logs)
+
+Screen resolution (e.g., “1080 × 1920”)
+
+Dark/Light mode
+
+Language (ar-SA / en-US)
+
+Use JavaScript userAgent + screen APIs.
+
+Example Function (must be included):
+
+function getDeviceInfo() {
+  const ua = navigator.userAgent;
+
+  let device = "Desktop";
+  if (/iPhone/i.test(ua)) device = "iPhone";
+  else if (/iPad/i.test(ua)) device = "iPad";
+  else if (/Android/i.test(ua)) device = "Android Device";
+  else if (/Windows/i.test(ua)) device = "Windows PC";
+  else if (/Mac OS X/i.test(ua)) device = "MacBook";
+
+  let os = "Unknown";
+  if (/Windows/i.test(ua)) os = "Windows";
+  else if (/Mac OS X/i.test(ua)) os = "macOS";
+  else if (/Android/i.test(ua)) os = "Android";
+  else if (/iPhone|iPad/i.test(ua)) os = "iOS";
+
+  let browser = "Unknown";
+  if (ua.includes("Chrome")) browser = "Chrome";
+  if (ua.includes("Safari") && !ua.includes("Chrome")) browser = "Safari";
+  if (ua.includes("Firefox")) browser = "Firefox";
+  if (ua.includes("Edg")) browser = "Edge";
+
+  return {
+    device,
+    os,
+    browser,
+    userAgent: ua,
+    screen: `${window.screen.width}x${window.screen.height}`,
+    theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+    lang: navigator.language
+  };
+}
+
+
+This function must run automatically on dashboard load.
+
+2) Backend Requirements
+
+Create an API route:
+
+POST /api/device/update
+
+It must:
+
+Receive: user_id, device, os, browser, userAgent, screen, theme, lang
+
+Store or update the device record in the database
+
+Update last_seen timestamp
+
+Prevent duplicates (identify by user_id + userAgent)
+
+3) Database Schema
+
+Create table:
+
+create table user_devices (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references users(id) on delete cascade,
+  device text,
+  os text,
+  browser text,
+  user_agent text,
+  screen text,
+  theme text,
+  lang text,
+  last_seen timestamptz default now(),
+  created_at timestamptz default now()
+);
+
+
+Create index for fast tracking:
+
+create index on user_devices (user_id);
+
+4) Automated Frontend → Backend Sync
+
+When dashboard loads:
+
+const info = getDeviceInfo();
+
+await fetch("/api/device/update", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ user_id, ...info })
+});
+
+
+This ensures the system always knows:
+
+آخر جهاز استخدمه المستخدم
+
+هل دخل من جهاز جديد
+
+هل تغير نوع الجهاز
+
+هل هناك نشاط غير اعتيادي
+
+5) Dashboard UI (Required)
+
+Add a new section:
+
+🔰 جهازك الحالي
+
+Display:
+
+Device: iPhone / Android / Windows PC / MacBook
+
+Browser: Chrome / Safari / Firefox / Edge
+
+OS: iOS / Android / Windows / macOS
+
+Screen resolution
+
+Last Seen timestamp
+
+Design must match Dallni branding:
+
+Arabic RTL
+
+Green accents
+
+Rounded cards
+
+6) Security Logic (Mandatory)
+
+Implement the following behaviors:
+
+✔ If device changes → show security alert
+
+Example popup message:
+
+“تمّ تسجيل دخول جديد من جهاز مختلف: iPhone — هل هذا أنت؟
+إذا لم تكن أنت، يرجى تغيير كلمة المرور فورًا.”
+
+✔ If browser changes (Chrome → Safari)
+
+Show:
+
+“ملاحظة: أنت تستخدم متصفحًا مختلفًا الآن.”
+
+✔ If OS changes (Android → Windows PC)
+
+Show warning card in Dashboard.
+
+✔ Log every new device as a separate row
+7) Optional Enhancements
+
+Use device info in the AI Assistant
+“أرى أنك تستخدم iPhone — إليك خطوات تغيير كلمة المرور…”
+
+Use info to personalize instructions
+
+Show settings shortcuts for each OS
+
+iPhone → Settings → Passwords
+
+Android → Settings → Security
+
+Windows → Privacy & Security
+
+8) Restrictions
+
+No fingerprinting
+
+No cross-site tracking
+
+Only collect non-sensitive device info
+
+Store only after user login
+
+No cookies beyond session usage
+
+✅ Final Deliverable
+
+Generate:
+
+The full device detection function
+
+API routes
+
+Backend logic
+
+Database models
+
+Dashboard UI
+
+Security warnings
+
+Integration with user profile
+
+Full RTL UI (Arabic first)
+
+All inside a module named:
+
+📦 Dallni Device Intelligence

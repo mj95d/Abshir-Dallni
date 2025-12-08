@@ -10,7 +10,7 @@ import { Footer } from "@/components/Footer";
 import { HomePage } from "@/components/HomePage";
 import { ServiceCategoryGrid } from "@/components/ServiceCategoryGrid";
 import { ChatInterface } from "@/components/ChatInterface";
-import { BreachChecker } from "@/components/BreachChecker";
+import { DigitalShield } from "@/components/DigitalShield";
 import { Dashboard } from "@/components/Dashboard";
 
 function AppContent() {
@@ -35,7 +35,7 @@ function AppContent() {
       case "security":
         return (
           <div className="p-4 py-8">
-            <BreachChecker />
+            <DigitalShield />
           </div>
         );
       case "dashboard":

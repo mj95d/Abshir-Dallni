@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { LanguageProvider } from "@/lib/LanguageContext";
 import { Header } from "@/components/Header";
 import { MobileNav } from "@/components/MobileNav";
+import { Footer } from "@/components/Footer";
 import { HomePage } from "@/components/HomePage";
 import { ServiceCategoryGrid } from "@/components/ServiceCategoryGrid";
 import { ChatInterface } from "@/components/ChatInterface";
@@ -49,11 +50,12 @@ function AppContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background flex flex-col">
       <Header currentPage={currentPage} onNavigate={setCurrentPage} />
-      <main className="pb-20 md:pb-0">
+      <main className="pb-20 md:pb-0 flex-1">
         {renderPage()}
       </main>
+      <Footer />
       <MobileNav currentPage={currentPage} onNavigate={setCurrentPage} />
     </div>
   );

@@ -157,6 +157,32 @@ export function BreachChecker() {
                   </Card>
                 ))}
 
+                {result.breaches?.some(b => b.dataTypes.some(t => t.toLowerCase().includes("password"))) && (
+                  <Card className="p-4 bg-destructive/10 border-destructive/30">
+                    <h4 className="font-semibold mb-2 flex items-center gap-2 text-destructive">
+                      <AlertTriangle className="h-5 w-5" />
+                      {language === "ar" ? "تحذير هام: تم تسريب كلمة المرور!" : "Important Warning: Password Leaked!"}
+                    </h4>
+                    <p className="text-sm mb-3">
+                      {language === "ar"
+                        ? "تم تسريب كلمة المرور الخاصة بك في أكثر من تسريب. إذا كنت تستخدم نفس كلمة المرور في مواقع أخرى، يجب تغييرها فوراً في جميع المواقع."
+                        : "Your password was leaked in multiple breaches. If you use the same password on other websites, you must change it immediately on all of them."}
+                    </p>
+                    <ul className="space-y-1 text-sm text-muted-foreground">
+                      <li>
+                        {language === "ar"
+                          ? "• استخدم كلمات مرور مختلفة لكل موقع"
+                          : "• Use different passwords for each website"}
+                      </li>
+                      <li>
+                        {language === "ar"
+                          ? "• استخدم مدير كلمات المرور لإنشاء كلمات مرور قوية"
+                          : "• Use a password manager to generate strong passwords"}
+                      </li>
+                    </ul>
+                  </Card>
+                )}
+
                 <Card className="p-4 bg-muted/50">
                   <h4 className="font-semibold mb-2 flex items-center gap-2">
                     <Shield className="h-4 w-4 text-primary" />

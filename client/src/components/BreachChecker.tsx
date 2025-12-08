@@ -215,6 +215,20 @@ export function BreachChecker() {
             )}
           </div>
         )}
+
+        <div className="mt-4 pt-4 border-t border-border">
+          <p className="text-xs text-muted-foreground text-center">
+            {language === "ar" ? "مدعوم بواسطة " : "Powered by "}
+            <a 
+              href="https://leakcheck.io" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary hover:underline"
+            >
+              LeakCheck
+            </a>
+          </p>
+        </div>
       </Card>
     </div>
   );

@@ -32,7 +32,7 @@ Preferred communication style: Simple, everyday language.
 
 **Key Features:**
 - AI chat interface with conversation history
-- Data breach monitoring via HIBP API integration
+- Data breach monitoring via LeakCheck API integration
 - Service category browser with detailed government service information
 - User dashboard for saved inquiries and recent searches
 - Mobile-optimized navigation with bottom tab bar
@@ -48,7 +48,7 @@ Preferred communication style: Simple, everyday language.
 **API Design:**
 - RESTful endpoints for data operations
 - `/api/chat` - AI conversation endpoint using OpenAI
-- `/api/breach-check` - Data breach monitoring via HIBP API
+- `/api/breach-check` - Data breach monitoring via LeakCheck API
 - Session-based conversation tracking with unique session IDs
 - Request/response logging middleware for debugging
 
@@ -115,11 +115,13 @@ Preferred communication style: Simple, everyday language.
 - Optional base URL override for custom endpoints
 - Model: gpt-5 (latest as of implementation)
 
-**Have I Been Pwned (HIBP) API:**
+**LeakCheck API:**
 - Purpose: Data breach monitoring for user emails
-- Configuration: HIBP_API_KEY environment variable
-- Endpoint: https://haveibeenpwned.com/api/v3
-- Returns breach history with severity classification (high/medium/low)
+- Configuration: Uses free Public API (no API key required)
+- Endpoint: https://leakcheck.io/api/public
+- Returns breach history with sources and severity classification (high/medium/low)
+- Free tier: Unlimited public API access with attribution required
+- Attribution: "Powered by LeakCheck" displayed in BreachChecker component
 
 ### Database
 

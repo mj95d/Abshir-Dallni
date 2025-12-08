@@ -6,31 +6,20 @@ import { insertSavedInquirySchema, insertBreachMonitorSchema, insertChatMessageS
 import { z } from "zod";
 import crypto from "crypto";
 
-const HIBP_API_URL = "https://haveibeenpwned.com/api/v3";
-const APP_NAME = "Dalleni-SaudiGovAssistant";
+const LEAKCHECK_PUBLIC_API_URL = "https://leakcheck.io/api/public";
 
-interface HIBPBreach {
-  Name: string;
-  Title: string;
-  Domain: string;
-  BreachDate: string;
-  AddedDate: string;
-  ModifiedDate: string;
-  PwnCount: number;
-  Description: string;
-  LogoPath: string;
-  DataClasses: string[];
-  IsVerified: boolean;
-  IsFabricated: boolean;
-  IsSensitive: boolean;
-  IsRetired: boolean;
-  IsSpamList: boolean;
-  IsMalware: boolean;
-  IsStealerLog: boolean;
-  IsSubscriptionFree: boolean;
+interface LeakCheckResponse {
+  success: boolean;
+  found: number;
+  fields?: string[];
+  sources?: {
+    name: string;
+    date: string;
+  }[];
+  error?: string;
 }
 
-async function checkHIBPBreaches(email: string): Promise<{
+async function checkLeakCheckBreaches(email: string): Promise<{
   found: boolean;
   breaches?: {
     name: string;
@@ -39,49 +28,51 @@ async function checkHIBPBreaches(email: string): Promise<{
     severity: "high" | "medium" | "low";
   }[];
 }> {
-  const hibpApiKey = process.env.HIBP_API_KEY;
-  
-  if (!hibpApiKey) {
-    throw new Error("HIBP API key not configured");
-  }
-
   try {
     const response = await fetch(
-      `${HIBP_API_URL}/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
+      `${LEAKCHECK_PUBLIC_API_URL}?check=${encodeURIComponent(email)}`,
       {
         headers: {
-          "hibp-api-key": hibpApiKey,
-          "user-agent": APP_NAME,
+          "Accept": "application/json",
         },
       }
     );
 
-    if (response.status === 404) {
+    if (!response.ok) {
+      throw new Error(`LeakCheck API error: ${response.status}`);
+    }
+
+    const data: LeakCheckResponse = await response.json();
+
+    if (!data.success) {
+      if (data.error) {
+        throw new Error(`LeakCheck error: ${data.error}`);
+      }
       return { found: false };
     }
 
-    if (!response.ok) {
-      throw new Error(`HIBP API error: ${response.status}`);
+    if (data.found === 0 || !data.sources || data.sources.length === 0) {
+      return { found: false };
     }
 
-    const breaches: HIBPBreach[] = await response.json();
+    const sensitiveFields = ["password", "passwords", "phone", "address", "dob", "ssn"];
+    const fields = data.fields || [];
+    const hasSensitiveData = fields.some(f => sensitiveFields.includes(f.toLowerCase()));
 
-    const formattedBreaches = breaches.map((breach) => {
+    const formattedBreaches = data.sources.map((source) => {
       let severity: "high" | "medium" | "low" = "low";
+      const lowerFields = fields.map(f => f.toLowerCase());
       
-      const sensitiveDataTypes = ["Passwords", "Credit cards", "Bank account numbers", "Social security numbers"];
-      const hasSensitiveData = breach.DataClasses.some((dc) => sensitiveDataTypes.includes(dc));
-      
-      if (hasSensitiveData || breach.PwnCount > 10000000) {
+      if (hasSensitiveData) {
         severity = "high";
-      } else if (breach.DataClasses.includes("Email addresses") || breach.PwnCount > 1000000) {
+      } else if (lowerFields.includes("email") || lowerFields.includes("username")) {
         severity = "medium";
       }
 
       return {
-        name: breach.Title,
-        date: breach.BreachDate,
-        dataTypes: breach.DataClasses.map((dc) => dc.toLowerCase().replace(" ", "_")),
+        name: source.name,
+        date: source.date,
+        dataTypes: fields.map(f => f.toLowerCase().replace(" ", "_")),
         severity,
       };
     });
@@ -91,7 +82,7 @@ async function checkHIBPBreaches(email: string): Promise<{
       breaches: formattedBreaches,
     };
   } catch (error) {
-    console.error("HIBP API error:", error);
+    console.error("LeakCheck API error:", error);
     throw error;
   }
 }
@@ -168,7 +159,7 @@ export async function registerRoutes(
 
       const { email, userId } = parsed.data;
 
-      const result = await checkHIBPBreaches(email);
+      const result = await checkLeakCheckBreaches(email);
 
       if (userId) {
         const existingMonitor = await storage.getBreachMonitorByEmail(userId, email);

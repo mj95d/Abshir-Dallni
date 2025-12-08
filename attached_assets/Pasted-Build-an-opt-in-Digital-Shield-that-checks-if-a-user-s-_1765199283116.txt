@@ -1,0 +1,217 @@
+Build an opt-in “Digital Shield” that checks if a user’s email/phone appeared in public data breaches and notifies them to change their password on Absher.
+No Absher login, no password handling, and no storage of sensitive secrets beyond user consent. Privacy-first.
+
+1) Tech Stack
+
+Frontend: React (Next.js) + Tailwind (RTL support), Arabic first.
+
+Backend: Next.js API routes (or Node/Express).
+
+DB: Supabase (Postgres) or Prisma + Postgres.
+
+Scheduler: Vercel Cron or Supabase Edge Functions (daily).
+
+Integrations (free tiers):
+
+LeakCheck.io or HaveIBeenPwned (email breach)
+
+Google Safe Browsing (for future URL checks)
+
+2) Environment Variables
+LEAKCHECK_API_KEY=...
+HIBP_API_KEY=...          # optional if you use HIBP paid
+JWT_SECRET=long_random
+
+3) Database Schema (SQL)
+
+Create minimal tables:
+
+-- Users opt-in table
+create table shield_users (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  phone text,                       -- optional
+  consent boolean not null default true,
+  notify_channel text default 'email',  -- 'email' | 'sms'
+  locale text default 'ar',
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  unique(email)
+);
+
+-- Breach history snapshots
+create table shield_breaches (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  source text not null,             -- 'leakcheck' | 'hibp'
+  breach_name text,
+  breach_date date,
+  record jsonb,                     -- raw provider payload (sanitized)
+  seen_at timestamptz default now()
+);
+
+-- Notifications log
+create table shield_notifications (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  kind text not null,               -- 'new_breach' | 'reminder'
+  message text not null,
+  sent_at timestamptz default now()
+);
+
+4) API Endpoints
+
+POST /api/shield/subscribe
+
+Body: { email, phone?, consent: true }
+
+Validates email, stores/updates shield_users.
+
+GET /api/shield/check?email=...
+
+Server-to-provider call (LeakCheck/HIBP).
+
+Returns { breached: boolean, count, breaches: [{name,date,source}] }.
+
+If breached: insert into shield_breaches.
+
+POST /api/shield/unsubscribe
+
+Body: { email } → sets consent=false.
+
+Security: Rate limit by IP + email (e.g., 10 req/day). Never expose provider keys to browser. Do all provider calls server-side.
+
+5) Provider Integration (LeakCheck example)
+// /api/shield/check (pseudo/TypeScript)
+import type { NextApiRequest, NextApiResponse } from 'next';
+
+export default async function handler(req:NextApiRequest,res:NextApiResponse){
+  const email = String(req.query.email || '').trim().toLowerCase();
+  if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    return res.status(400).json({error:'invalid_email'});
+
+  const r = await fetch(`https://leakcheck.net/api/public?key=${process.env.LEAKCHECK_API_KEY}&check=${encodeURIComponent(email)}`);
+  if(!r.ok) return res.status(502).json({error:'provider_unavailable'});
+
+  const data = await r.json();
+  const breaches = Array.isArray(data?.result) ? data.result.map((x:any)=>({
+    name: x.source || 'Unknown',
+    date: x.date || null,
+    source: 'leakcheck'
+  })) : [];
+
+  const breached = breaches.length > 0;
+  // TODO: upsert into shield_breaches if breached
+  return res.status(200).json({breached, count: breaches.length, breaches});
+}
+
+
+(بديل HIBP: استخدم GET https://haveibeenpwned.com/api/v3/breachedaccount/{email} مع هيدر hibp-api-key وuser-agent، وتعامَل مع 404 كـ “لا يوجد تسريب”.)
+
+6) Scheduler (Daily Scan)
+
+Create a cron job /api/shield/cron (server-protected with CRON_TOKEN).
+
+Steps:
+
+Fetch all shield_users with consent=true.
+
+For each email: call the same provider.
+
+Compare new results with shield_breaches (by breach_name).
+
+If any new breach detected → enqueue notification (email/SMS) + log shield_notifications.
+
+Pseudo:
+
+// /api/shield/cron
+if(req.headers.authorization !== `Bearer ${process.env.CRON_TOKEN}`) return 401;
+const users = await db.select('*').from('shield_users').where('consent', true);
+// loop users => check => if new => send notify
+
+7) Notification Templates (Arabic, concise)
+
+Subject: تنبيه أمني من دلّني — تم رصد تسريب مرتبط ببريدك
+
+Body (Email/SMS):
+
+تم اكتشاف تسريب قديم مرتبط ببريدك. ننصحك بتغيير كلمة المرور في أبشر
+وتفعيل التحقق بخطوتين. اضغط هنا للانتقال إلى صفحة تغيير كلمة المرور في أبشر.
+ملاحظة: دلّني لا يطلب منك أي رموز تحقق أو كلمات مرور.
+
+
+Include button: “انتقل لتغيير كلمة المرور في أبشر” (رابط رسمي).
+
+8) UI/UX (Arabic First, RTL)
+
+Card section named “درع الحماية الرقمية”:
+
+Input (email/phone) + CTA: فحص الآن
+
+Result states:
+
+✔ آمن: “لم نجد أي تسريب معروف مرتبط بهذا البريد.”
+
+⚠ مسرَّب: “تم العثور على X تسريب(ات). غيّر كلمة المرور الآن في أبشر.”
+
+Consent checkbox (checked): “أوافق على فحص بريدي دوريًا لإشعاري بأي تسريب جديد.”
+
+Fine print:
+
+“لا نقوم بتسجيل الدخول إلى أبشر ولا نحتفظ بكلمات مرور.”
+
+“الفحص يتم عبر قواعد بيانات عامة للتسريبات وبشكل مشفر.”
+
+9) Privacy & Compliance
+
+Store only email/phone + consent + minimal breach meta.
+
+Do not store leaked passwords, hashes, tokenized secrets, or full provider payloads if they include sensitive fields. Sanitize to {source, date}.
+
+Provide DELETE /api/shield/delete?email=... to erase user record (PDPL/GDPR style).
+
+10) Acceptance Criteria (must pass)
+
+Server-side calls only; API keys never exposed in browser network logs.
+
+Rate limiting in place (429 on abuse).
+
+Opt-in consent must be stored before any scheduled scans.
+
+Clicking “Change Password in Absher” opens the official page only.
+
+Cron detects new breaches and avoids duplicate notifications.
+
+All copy in Arabic (RTL) with optional English locale fallback.
+
+Unit tests for: email validation, provider response mapping, duplicate suppression.
+
+11) Test Scenarios
+
+email = test@safe.com → returns breached=false.
+
+email = known@breach.com (mocked) → breached=true with ≥1 breach → notification queues once.
+
+Unsubscribe flow → user removed from scans → no more notifications.
+
+Cron with provider down → retries with exponential backoff, logs error only.
+
+Deliverables:
+
+Working Next.js app with the pages/components, API routes, DB migrations, and cron job.
+
+.env.example with needed keys.
+
+README (Arabic) explaining privacy, consent, and how to rotate keys.
+
+Branding strings (ready to paste):
+
+Section title: درع الحماية الرقمية
+
+CTA: فحص الآن / تفعيل التنبيهات
+
+Safe state: بريدك آمن — لا توجد مؤشرات تسريب معروفة.
+
+Breached state: تم العثور على تسريبات معروفة. غيّر كلمة المرور في أبشر الآن.
+
+Disclaimer: دلّني لا يطلب كلمة المرور ولا رموز التحقق، ولا يسجّل الدخول إلى أبشر.

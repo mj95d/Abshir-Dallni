@@ -12,13 +12,5 @@
 
 
 
-## لقطات واجهة
-![الرئيسية](docs/screenshots/home.png)
-![الأمن](docs/screenshots/security.png)
-![المساعد](docs/screenshots/assistant.png)
-
-روابط مباشرة (Raw):
-- https://raw.githubusercontent.com/mj95d/Abshir-Dallni/main/docs/screenshots/home.png
-- https://raw.githubusercontent.com/mj95d/Abshir-Dallni/main/docs/screenshots/security.png
-- https://raw.githubusercontent.com/mj95d/Abshir-Dallni/main/docs/screenshots/assistant.png
+ 
 

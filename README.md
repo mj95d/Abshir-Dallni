@@ -13,12 +13,12 @@
 
 
 ## لقطات واجهة
-![الرئيسية](<img width="1261" height="867" alt="Screenshot 2025-12-10 043202" src="https://github.com/user-attachments/assets/063a210c-df92-451a-b620-e8017da4be99" />
-)
-![الأمن](<img width="1261" height="867" alt="Screenshot 2025-12-10 043202" src="https://github.com/user-attachments/assets/f49ef4ad-ebe7-43e9-a2af-e839a2b672db" />
-)
-![المساعد](<img width="1263" height="859" alt="Screenshot 2025-12-10 043301" src="https://github.com/user-attachments/assets/8f2772ec-2e41-42ca-a2dd-9e989db5540a" />
-)
+![الرئيسية](docs/screenshots/home.png)
+![الأمن](docs/screenshots/security.png)
+![المساعد](docs/screenshots/assistant.png)
 
-
+روابط مباشرة (Raw):
+- https://raw.githubusercontent.com/mj95d/Abshir-Dallni/main/docs/screenshots/home.png
+- https://raw.githubusercontent.com/mj95d/Abshir-Dallni/main/docs/screenshots/security.png
+- https://raw.githubusercontent.com/mj95d/Abshir-Dallni/main/docs/screenshots/assistant.png
 

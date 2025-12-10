@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
+  <rect width="100%" height="100%" fill="#0f172a"/>
+  <rect x="40" y="40" width="1200" height="80" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="60" y="90" fill="#e2e8f0" font-size="28" font-family="Segoe UI">دلّني — الصفحة الرئيسية</text>
+
+  <rect x="40" y="140" width="260" height="520" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="60" y="180" fill="#93c5fd" font-size="20" font-family="Segoe UI">التنقل</text>
+  <text x="60" y="220" fill="#cbd5e1" font-size="18" font-family="Segoe UI">لوحة</text>
+  <text x="60" y="260" fill="#cbd5e1" font-size="18" font-family="Segoe UI">مساعد</text>
+  <text x="60" y="300" fill="#cbd5e1" font-size="18" font-family="Segoe UI">الدرع الأمني</text>
+
+  <rect x="320" y="140" width="920" height="520" rx="12" fill="#0b1220" stroke="#334155"/>
+  <text x="340" y="190" fill="#22d3ee" font-size="22" font-family="Segoe UI">نظرة عامة</text>
+
+  <rect x="340" y="220" width="420" height="180" rx="12" fill="#0f172a" stroke="#334155"/>
+  <text x="360" y="260" fill="#cbd5e1" font-size="18" font-family="Segoe UI">خدمات شائعة</text>
+  <text x="360" y="300" fill="#94a3b8" font-size="16" font-family="Segoe UI">أبشر | الجوازات | المرور | التأمينات</text>
+
+  <rect x="780" y="220" width="440" height="180" rx="12" fill="#0f172a" stroke="#334155"/>
+  <text x="800" y="260" fill="#cbd5e1" font-size="18" font-family="Segoe UI">آخر النشاط</text>
+
+  <rect x="340" y="420" width="880" height="220" rx="12" fill="#0f172a" stroke="#334155"/>
+  <text x="360" y="460" fill="#cbd5e1" font-size="18" font-family="Segoe UI">اختصارات سريعة</text>
+</svg>

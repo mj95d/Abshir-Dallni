@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720">
+  <rect width="100%" height="100%" fill="#0f172a"/>
+  <rect x="40" y="40" width="1200" height="80" rx="12" fill="#111827" stroke="#334155"/>
+  <text x="60" y="90" fill="#e2e8f0" font-size="28" font-family="Segoe UI">الدرع الأمني — الاشتراك</text>
+
+  <rect x="200" y="160" width="880" height="420" rx="12" fill="#0b1220" stroke="#334155"/>
+  <text x="220" y="200" fill="#22d3ee" font-size="20" font-family="Segoe UI">أدخل بريدك ورقمك</text>
+  <rect x="220" y="220" width="400" height="56" rx="8" fill="#111827" stroke="#334155"/>
+  <text x="230" y="255" fill="#94a3b8" font-size="16" font-family="Segoe UI">البريد الإلكتروني</text>
+  <rect x="220" y="290" width="400" height="56" rx="8" fill="#111827" stroke="#334155"/>
+  <text x="230" y="325" fill="#94a3b8" font-size="16" font-family="Segoe UI">رقم الجوال (اختياري)</text>
+  <rect x="220" y="360" width="200" height="44" rx="8" fill="#22c55e"/>
+  <text x="240" y="390" fill="#052e1b" font-size="18" font-family="Segoe UI">اشتراك</text>
+</svg>
